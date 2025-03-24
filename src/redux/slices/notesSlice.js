@@ -10,16 +10,35 @@ export const fetchNotes = createAsyncThunk(
         },
       });
       if (!response.ok) throw new Error('Failed to fetch notes');
-      return await response.json();
+      const data = await response.json();
+      return data.notes || [];
     } catch (error) {
       return rejectWithValue(error.message);
     }
   }
 );
 
-export const createNote = createAsyncThunk(
-  'notes/createNote',
-  async (noteData, { rejectWithValue }) => {
+export const fetchNoteByEventId = createAsyncThunk(
+  'notes/fetchNoteByEventId',
+  async (eventId, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`/api/notes/${eventId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch note');
+      const data = await response.json();
+      return data.note;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const createOrUpdateNote = createAsyncThunk(
+  'notes/createOrUpdateNote',
+  async ({ eventId, content, userEmail }, { rejectWithValue }) => {
     try {
       const response = await fetch('/api/notes', {
         method: 'POST',
@@ -27,10 +46,11 @@ export const createNote = createAsyncThunk(
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify(noteData),
+        body: JSON.stringify({ eventId, content, userEmail }),
       });
-      if (!response.ok) throw new Error('Failed to create note');
-      return await response.json();
+      if (!response.ok) throw new Error('Failed to create/update note');
+      const data = await response.json();
+      return data.note;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -39,18 +59,19 @@ export const createNote = createAsyncThunk(
 
 export const updateNote = createAsyncThunk(
   'notes/updateNote',
-  async ({ id, content }, { rejectWithValue }) => {
+  async ({ eventId, content, userEmail }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/notes/${id}`, {
+      const response = await fetch(`/api/notes/${eventId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, userEmail }),
       });
       if (!response.ok) throw new Error('Failed to update note');
-      return { id, content };
+      const data = await response.json();
+      return data.note;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -89,17 +110,28 @@ export const notesSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      .addCase(createNote.fulfilled, (state, action) => {
-        state.notes.unshift(action.payload);
+      .addCase(createOrUpdateNote.fulfilled, (state, action) => {
+        const index = state.notes.findIndex((note) => note.eventId === action.payload.eventId);
+        if (index !== -1) {
+          state.notes[index] = action.payload;
+        } else {
+          state.notes.unshift(action.payload);
+        }
       })
       .addCase(updateNote.fulfilled, (state, action) => {
-        const index = state.notes.findIndex((note) => note.id === action.payload.id);
+        const index = state.notes.findIndex((note) => note.eventId === action.payload.eventId);
         if (index !== -1) {
-          state.notes[index] = {
-            ...state.notes[index],
-            ...action.payload,
-          };
+          state.notes[index] = action.payload;
         }
+      })
+      .addCase(fetchNoteByEventId.fulfilled, (state, action) => {
+        const index = state.notes.findIndex((note) => note.eventId === action.payload.eventId);
+        if (index !== -1) {
+          state.notes[index] = action.payload;
+        } else {
+          state.notes.push(action.payload);
+        }
+        state.currentNote = action.payload;
       });
   },
 });
