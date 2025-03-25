@@ -38,19 +38,22 @@ export const fetchNoteByEventId = createAsyncThunk(
 
 export const createOrUpdateNote = createAsyncThunk(
   'notes/createOrUpdateNote',
-  async ({ eventId, content, userEmail }, { rejectWithValue }) => {
+  async ({ eventId, content }, { rejectWithValue }) => {
     try {
-      const response = await fetch('/api/notes', {
-        method: 'POST',
+      const response = await fetch(`/api/notes/${eventId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify({ eventId, content, userEmail }),
+        body: JSON.stringify({ content }),
       });
-      if (!response.ok) throw new Error('Failed to create/update note');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create/update note');
+      }
       const data = await response.json();
-      return data.note;
+      return { ...data.note, eventId };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -59,7 +62,7 @@ export const createOrUpdateNote = createAsyncThunk(
 
 export const updateNote = createAsyncThunk(
   'notes/updateNote',
-  async ({ eventId, content, userEmail }, { rejectWithValue }) => {
+  async ({ eventId, content }, { rejectWithValue }) => {
     try {
       const response = await fetch(`/api/notes/${eventId}`, {
         method: 'PUT',
@@ -67,11 +70,14 @@ export const updateNote = createAsyncThunk(
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify({ content, userEmail }),
+        body: JSON.stringify({ content }),
       });
-      if (!response.ok) throw new Error('Failed to update note');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update note');
+      }
       const data = await response.json();
-      return data.note;
+      return { ...data.note, eventId };
     } catch (error) {
       return rejectWithValue(error.message);
     }

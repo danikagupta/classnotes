@@ -11,19 +11,29 @@ router.get('/upcoming', verifyToken, async (req, res) => {
     oauth2Client.setCredentials({ access_token: accessToken });
     
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-    const now = new Date();
+    const { start, end } = req.query;
+
+    console.log('Fetching calendar events:', { start, end });
+
+    if (!start || !end) {
+      console.error('Missing date range:', req.query);
+      return res.status(400).json({ error: 'Missing start or end date' });
+    }
+
     const response = await calendar.events.list({
       calendarId: 'primary',
-      timeMin: now.toISOString(),
-      timeMax: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(), // Next 24 hours
+      timeMin: start,
+      timeMax: end,
       singleEvents: true,
       orderBy: 'startTime',
+      maxResults: 2500  // Increased to handle more events
     });
 
+    console.log(`Found ${response.data.items.length} events`);
     res.json(response.data.items);
   } catch (error) {
-    console.error('Get upcoming meetings error:', error);
-    res.status(500).json({ error: 'Failed to get upcoming meetings' });
+    console.error('Calendar API error:', error);
+    res.status(500).json({ error: 'Failed to fetch events' });
   }
 });
 

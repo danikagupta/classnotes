@@ -2,9 +2,13 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 export const fetchUpcomingMeetings = createAsyncThunk(
   'calendar/fetchUpcomingMeetings',
-  async (_, { rejectWithValue }) => {
+  async ({ start, end }, { rejectWithValue }) => {
     try {
-      const response = await fetch('/api/calendar/upcoming', {
+      const params = new URLSearchParams({
+        start: start.toISOString(),
+        end: end.toISOString()
+      });
+      const response = await fetch(`/api/calendar/upcoming?${params}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },

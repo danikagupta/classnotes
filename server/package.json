@@ -2,14 +2,10 @@
   "name": "meeting-notes-app",
   "version": "1.0.0",
   "description": "Intelligent meeting notes application with Google Calendar integration",
-  "main": "server/index.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node server/index.js",
-    "server": "nodemon server/index.js",
-    "client": "cd client && npm start",
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "install-client": "cd client && npm install",
-    "install-all": "npm install && npm run install-client",
+    "start": "node index.js",
+    "server": "nodemon index.js",
     "test": "jest"
   },
   "dependencies": {

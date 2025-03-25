@@ -20,7 +20,7 @@ import {
   ArrowBack as ArrowBackIcon,
   History as HistoryIcon,
 } from '@mui/icons-material';
-import { updateNote } from '../../redux/slices/notesSlice';
+import { updateNote, createOrUpdateNote } from '../../redux/slices/notesSlice';
 
 const NotesEditor = () => {
   const { id } = useParams();
@@ -29,7 +29,10 @@ const NotesEditor = () => {
   const [content, setContent] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   const { notes } = useSelector((state) => state.notes);
-  const currentNote = notes.find((note) => note.id === id);
+  const isNewNote = window.location.pathname === '/notes/new';
+  const searchParams = new URLSearchParams(window.location.search);
+  const eventId = isNewNote ? searchParams.get('eventId') : id;
+  const currentNote = isNewNote ? null : notes.find((note) => note.eventId === eventId);
 
   useEffect(() => {
     if (currentNote) {
@@ -39,11 +42,15 @@ const NotesEditor = () => {
 
   const handleSave = async () => {
     try {
-      await dispatch(updateNote({ id, content })).unwrap();
-      // Show success message or notification
+      if (!content.trim()) {
+        alert('Please enter some content for the note');
+        return;
+      }
+      await dispatch(createOrUpdateNote({ eventId, content })).unwrap();
+      navigate('/');
     } catch (error) {
       console.error('Failed to save note:', error);
-      // Show error message
+      alert(error.message || 'Failed to save note');
     }
   };
 
@@ -52,7 +59,8 @@ const NotesEditor = () => {
     return new Date(timestamp).toLocaleString();
   };
 
-  if (!currentNote) {
+  // For existing notes, show error if not found
+  if (!isNewNote && !currentNote) {
     return (
       <Container maxWidth="md" sx={{ mt: 4 }}>
         <Typography>Note not found</Typography>
@@ -77,7 +85,7 @@ const NotesEditor = () => {
           Back
         </Button>
         <Typography variant="h5" component="h1">
-          {currentNote.meetingMetadata?.title || 'Meeting Notes'}
+          {isNewNote ? 'New Note' : (currentNote?.meetingMetadata?.title || 'Meeting Notes')}
         </Typography>
         <IconButton
           onClick={() => setShowHistory(!showHistory)}

@@ -8,13 +8,24 @@ const getHeaders = () => {
   };
 };
 
+const handleResponse = async (response) => {
+  // Check for new token in headers
+  const newToken = response.headers.get('x-new-token');
+  if (newToken) {
+    console.log('Received new token from server');
+    localStorage.setItem('token', newToken);
+  }
+
+  if (!response.ok) throw new Error('API request failed');
+  return response.json();
+};
+
 export const api = {
   get: async (endpoint) => {
     const response = await fetch(`${API_URL}${endpoint}`, {
       headers: getHeaders(),
     });
-    if (!response.ok) throw new Error('API request failed');
-    return response.json();
+    return handleResponse(response);
   },
 
   post: async (endpoint, data) => {
@@ -23,8 +34,7 @@ export const api = {
       headers: getHeaders(),
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error('API request failed');
-    return response.json();
+    return handleResponse(response);
   },
 
   put: async (endpoint, data) => {
@@ -33,8 +43,7 @@ export const api = {
       headers: getHeaders(),
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error('API request failed');
-    return response.json();
+    return handleResponse(response);
   },
 
   delete: async (endpoint) => {
@@ -42,7 +51,6 @@ export const api = {
       method: 'DELETE',
       headers: getHeaders(),
     });
-    if (!response.ok) throw new Error('API request failed');
-    return response.json();
+    return handleResponse(response);
   },
 };

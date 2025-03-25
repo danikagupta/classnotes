@@ -48,6 +48,7 @@ const initializeFirebase = () => {
 
 // Initialize Firestore
 let db;
+
 try {
   initializeFirebase();
   db = admin.firestore();
@@ -61,10 +62,16 @@ try {
 
   // Test Firestore connection
   db.collection('notes').limit(1).get()
-    .then(() => console.log('Firestore connection test successful'))
-    .catch(error => console.error('Firestore connection test failed:', error.message));
+    .then(() => {
+      console.log('Firestore connection test successful');
+    })
+    .catch(error => {
+      console.error('Failed to connect to Firestore:', error.message);
+      throw error;
+    });
 } catch (error) {
   console.error('Failed to initialize Firestore:', error.message);
+  throw error;
 }
 
 // Database helper functions
@@ -134,6 +141,5 @@ const dbHelpers = {
 module.exports = {
   admin,
   db,
-  dbHelpers,
   initializeFirebase
 };

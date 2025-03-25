@@ -45,60 +45,22 @@ router.post('/', verifyToken, async (req, res) => {
     const now = admin.firestore.Timestamp.now();
     const noteRef = db.collection('notes').doc(eventId);
     
-    // Check if note already exists
-    const noteDoc = await noteRef.get();
+    const newNote = {
+      eventId,
+      content,
+      createdBy: email,
+      lastEditor: email,
+      createdAt: now,
+      updatedAt: now,
+      versions: []
+    };
     
-    if (noteDoc.exists) {
-      // Update existing note with new version
-      const existingNote = noteDoc.data();
-      const updatedVersions = [...(existingNote.versions || []), {
-        content: existingNote.content,
-        timestamp: existingNote.updatedAt,
-        editor: existingNote.lastEditor
-      }];
-      
-      const updatedNote = {
-        content,
-        lastEditor: email,
-        updatedAt: now,
-        versions: updatedVersions
-      };
-
-      await noteRef.update(updatedNote);
-      
-      const responseNote = {
-        eventId,
-        content,
-        versions: updatedVersions,
-        updatedAt: now,
-        lastEditor: email,
-        createdBy: existingNote.createdBy,
-        createdAt: existingNote.createdAt
-      };
-
-      res.json({
-        success: true,
-        note: convertNoteTimestamps(responseNote)
-      });
-    } else {
-      // Create new note
-      const newNote = {
-        eventId,
-        content,
-        createdBy: email,
-        lastEditor: email,
-        createdAt: now,
-        updatedAt: now,
-        versions: []
-      };
-      
-      await noteRef.set(newNote);
-      
-      res.json({
-        success: true,
-        note: convertNoteTimestamps(newNote)
-      });
-    }
+    await noteRef.set(newNote);
+    
+    res.json({
+      success: true,
+      note: convertNoteTimestamps(newNote)
+    });
   } catch (error) {
     console.error('Create/Update note error:', error);
     res.status(500).json({ success: false, error: 'Failed to create/update note' });
@@ -123,7 +85,25 @@ router.put('/:eventId', verifyToken, async (req, res) => {
     const noteDoc = await noteRef.get();
     
     if (!noteDoc.exists) {
-      return res.status(404).json({ success: false, error: 'Note not found' });
+      // If note doesn't exist, create it
+      const now = admin.firestore.Timestamp.now();
+      const newNote = {
+        eventId,
+        content,
+        createdBy: email,
+        lastEditor: email,
+        createdAt: now,
+        updatedAt: now,
+        versions: []
+      };
+      
+      await noteRef.set(newNote);
+      
+      res.json({
+        success: true,
+        note: convertNoteTimestamps(newNote)
+      });
+      return;
     }
     
     const existingNote = noteDoc.data();
@@ -146,6 +126,7 @@ router.put('/:eventId', verifyToken, async (req, res) => {
     await noteRef.update(updatedNote);
     
     const responseNote = {
+      ...existingNote,
       ...updatedNote,
       eventId
     };

@@ -85,6 +85,10 @@ function App() {
             element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
           />
           <Route
+            path="/notes/new"
+            element={isAuthenticated ? <NotesEditor /> : <Navigate to="/login" />}
+          />
+          <Route
             path="/notes/:id"
             element={isAuthenticated ? <NotesEditor /> : <Navigate to="/login" />}
           />

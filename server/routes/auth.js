@@ -5,8 +5,10 @@ const { oauth2Client, getAuthUrl } = require('../config/google');
 const { admin, db, getUserCollectionPath } = require('../config/firebase');
 const jwt = require('jsonwebtoken');
 
-// Verify JWT middleware
-const verifyToken = (req, res, next) => {
+const { refreshAccessToken, isTokenExpired, createNewToken } = require('../utils/tokenRefresh');
+
+// Verify JWT middleware with token refresh
+const verifyToken = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   
   if (!token) {
@@ -14,8 +16,29 @@ const verifyToken = (req, res, next) => {
   }
 
   try {
+    // First verify the token is valid
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
+
+    // Check if token is about to expire
+    if (isTokenExpired(token) && decoded.refreshToken) {
+      try {
+        console.log('Refreshing access token...');
+        const newAccessToken = await refreshAccessToken(decoded.refreshToken);
+        const newToken = createNewToken(token, newAccessToken);
+        
+        // Update the request with new token data
+        req.user = jwt.decode(newToken);
+        
+        // Send the new token in the response headers
+        res.set('X-New-Token', newToken);
+        console.log('Access token refreshed successfully');
+      } catch (refreshError) {
+        console.error('Failed to refresh token:', refreshError);
+        // Continue with the old token if refresh fails
+      }
+    }
+
     next();
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
