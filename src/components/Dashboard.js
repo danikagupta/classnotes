@@ -7,18 +7,15 @@ import {
   DialogTitle,
   DialogContent,
   Typography,
-  AppBar,
-  Toolbar,
   Button,
   Box,
   Menu,
   MenuItem,
   IconButton,
 } from '@mui/material';
-import { Logout as LogoutIcon, NotificationsOutlined } from '@mui/icons-material';
+import { NotificationsOutlined } from '@mui/icons-material';
 import { fetchNotes } from '../redux/slices/notesSlice';
 import { fetchUpcomingMeetings } from '../redux/slices/calendarSlice';
-import { clearUser } from '../redux/slices/authSlice';
 import NotesIcon from './notes/NotesIcon';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -28,9 +25,8 @@ import interactionPlugin from '@fullcalendar/interaction';
 const Dashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { notes, loading: notesLoading } = useSelector((state) => state.notes);
-  const { meetings, loading: meetingsLoading } = useSelector((state) => state.calendar);
-  const { user } = useSelector((state) => state.auth);
+  const { notes } = useSelector((state) => state.notes);
+  const { meetings } = useSelector((state) => state.calendar);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [notificationsAnchor, setNotificationsAnchor] = useState(null);
   const [recentNotes, setRecentNotes] = useState([]);
@@ -51,12 +47,6 @@ const Dashboard = () => {
     ).slice(0, 5);
     setRecentNotes(sortedNotes);
   }, [notes]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    dispatch(clearUser());
-    navigate('/login');
-  };
 
   const handleEventClick = (info) => {
     const meeting = meetings.find(m => m.id === info.event.id);
@@ -94,66 +84,66 @@ const Dashboard = () => {
     }));
   };
 
+  const renderEventContent = (eventInfo) => {
+    return (
+      <>
+        <div>{eventInfo.event.title}</div>
+        {eventInfo.event.extendedProps.hasNotes && <NotesIcon />}
+      </>
+    );
+  };
+
   return (
     <>
-      <AppBar position="static" sx={{ mb: 4 }}>
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Meeting Notes
-          </Typography>
+      <Container maxWidth="xl" sx={{ mt: 4 }}>
+        <Box sx={{ position: 'relative', mb: 4 }}>
           <IconButton
-            color="inherit"
+            color="primary"
             onClick={(e) => setNotificationsAnchor(e.currentTarget)}
+            sx={{ position: 'absolute', right: 0, top: 0 }}
           >
             <NotificationsOutlined />
           </IconButton>
-          <Button
-            color="inherit"
-            onClick={handleLogout}
-            startIcon={<LogoutIcon />}
-          >
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
 
-      <Menu
-        anchorEl={notificationsAnchor}
-        open={Boolean(notificationsAnchor)}
-        onClose={() => setNotificationsAnchor(null)}
-        PaperProps={{
-          sx: { width: 350 }
-        }}
-      >
-        <MenuItem disabled>
-          <Typography variant="subtitle1">Recent Notes</Typography>
-        </MenuItem>
-        {recentNotes.map((note) => (
-          <MenuItem 
-            key={note.id}
-            onClick={() => {
-              const meeting = meetings.find(m => m.eventId === note.eventId);
-              setSelectedEvent({ ...meeting, note });
-              setNotificationsAnchor(null);
+          <Menu
+            anchorEl={notificationsAnchor}
+            open={Boolean(notificationsAnchor)}
+            onClose={() => setNotificationsAnchor(null)}
+            PaperProps={{
+              sx: { width: 350 }
             }}
           >
-            <Box sx={{ width: '100%' }}>
-              <Typography variant="subtitle2" noWrap>
-                {note.title}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" display="block">
-                {formatNotificationDate(note.createdAt)}
-              </Typography>
-            </Box>
-          </MenuItem>
-        ))}
-      </Menu>
+            <MenuItem disabled>
+              <Typography variant="subtitle1">Recent Notes</Typography>
+            </MenuItem>
+            {recentNotes.map((note) => (
+              <MenuItem 
+                key={note.id}
+                onClick={() => {
+                  const meeting = meetings.find(m => m.eventId === note.eventId);
+                  setSelectedEvent({ ...meeting, note });
+                  setNotificationsAnchor(null);
+                }}
+              >
+                <Box sx={{ width: '100%' }}>
+                  <Box>
+                    <Typography variant="subtitle2" noWrap>
+                      {note.title}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      {formatNotificationDate(note.createdAt)}
+                    </Typography>
+                  </Box>
+                </Box>
+              </MenuItem>
+            ))}
+          </Menu>
+        </Box>
 
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Box sx={{ height: 'calc(100vh - 200px)' }}>
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView="dayGridMonth"
+            initialView="timeGridWeek"
             headerToolbar={{
               left: 'prev,next today',
               center: 'title',
@@ -161,49 +151,14 @@ const Dashboard = () => {
             }}
             events={getCalendarEvents()}
             eventClick={handleEventClick}
-            datesSet={(info) => {
-              console.log('Calendar dates changed:', {
-                start: info.startStr,
-                end: info.endStr,
-                view: info.view.type
-              });
-              dispatch(fetchUpcomingMeetings({
-                start: new Date(info.start),
-                end: new Date(info.end)
-              }));
-            }}
-            eventContent={(arg) => (
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                width: '100%',
-                overflow: 'hidden'
-              }}>
-                <Typography 
-                  noWrap 
-                  sx={{ 
-                    flexGrow: 1,
-                    fontSize: 'inherit',
-                    lineHeight: 'inherit'
-                  }}
-                >
-                  {arg.event.title}
-                </Typography>
-                {arg.event.extendedProps.hasNotes && 
-                  <NotesIcon sx={{ flexShrink: 0, fontSize: '1rem' }} />}
-              </Box>
-            )}
-            slotMinTime="06:00:00"
-            slotMaxTime="22:00:00"
-            allDaySlot={true}
-            nowIndicator={true}
+            eventContent={renderEventContent}
+            height="100%"
           />
         </Box>
       </Container>
 
-      <Dialog 
-        open={Boolean(selectedEvent)} 
+      <Dialog
+        open={Boolean(selectedEvent)}
         onClose={() => setSelectedEvent(null)}
         maxWidth="md"
         fullWidth
@@ -211,8 +166,10 @@ const Dashboard = () => {
         {selectedEvent && (
           <>
             <DialogTitle>
-              <Typography variant="h6">{selectedEvent.summary}</Typography>
-              <Typography variant="subtitle2" color="text.secondary">
+              <Typography variant="h6" gutterBottom>
+                {selectedEvent.summary}
+              </Typography>
+              <Typography variant="subtitle1" color="text.secondary">
                 {formatDate(selectedEvent.start.dateTime)} - {formatDate(selectedEvent.end.dateTime)}
               </Typography>
             </DialogTitle>

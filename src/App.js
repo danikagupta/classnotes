@@ -4,12 +4,16 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setUser } from './redux/slices/authSlice';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { Box } from '@mui/material';
 
 // Components
 import Login from './components/auth/Login';
 import AuthCallback from './components/auth/AuthCallback';
 import Dashboard from './components/Dashboard';
 import NotesEditor from './components/notes/NotesEditor';
+import UserManagement from './components/admin/UserManagement';
+import AllNotes from './components/admin/AllNotes';
+import Navigation from './components/common/Navigation';
 
 // Services
 import WebSocketService from './services/websocket';
@@ -29,8 +33,10 @@ const theme = createTheme({
 
 function App() {
   const dispatch = useDispatch();
-  const { isAuthenticated, loading } = useSelector((state) => state.auth);
+  const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'OWNER';
+  const isOwner = user?.role === 'OWNER';
 
   useEffect(() => {
     const checkExistingToken = async () => {
@@ -82,16 +88,83 @@ function App() {
           <Route path="/auth/google/callback" element={<AuthCallback />} />
           <Route
             path="/dashboard"
-            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
+            element={
+              isAuthenticated ? (
+                <Box>
+                  <Navigation />
+                  <Box sx={{ p: 3 }}>
+                    <Dashboard />
+                  </Box>
+                </Box>
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
           />
           <Route
             path="/notes/new"
-            element={isAuthenticated ? <NotesEditor /> : <Navigate to="/login" />}
+            element={
+              isAuthenticated ? (
+                <Box>
+                  <Navigation />
+                  <Box sx={{ p: 3 }}>
+                    <NotesEditor />
+                  </Box>
+                </Box>
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
           />
           <Route
             path="/notes/:id"
-            element={isAuthenticated ? <NotesEditor /> : <Navigate to="/login" />}
+            element={
+              isAuthenticated ? (
+                <Box>
+                  <Navigation />
+                  <Box sx={{ p: 3 }}>
+                    <NotesEditor />
+                  </Box>
+                </Box>
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
           />
+          {isAdmin && (
+            <Route
+              path="/admin/notes"
+              element={
+                isAuthenticated ? (
+                  <Box>
+                    <Navigation />
+                    <Box sx={{ p: 3 }}>
+                      <AllNotes />
+                    </Box>
+                  </Box>
+                ) : (
+                  <Navigate to="/login" />
+                )
+              }
+            />
+          )}
+          {isOwner && (
+            <Route
+              path="/admin/users"
+              element={
+                isAuthenticated ? (
+                  <Box>
+                    <Navigation />
+                    <Box sx={{ p: 3 }}>
+                      <UserManagement />
+                    </Box>
+                  </Box>
+                ) : (
+                  <Navigate to="/login" />
+                )
+              }
+            />
+          )}
           <Route path="/" element={<Navigate to="/dashboard" />} />
         </Routes>
       </Router>

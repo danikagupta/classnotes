@@ -48,6 +48,7 @@ router.post('/', verifyToken, async (req, res) => {
     const newNote = {
       eventId,
       content,
+      userEmail: email,  // Store user email directly
       createdBy: email,
       lastEditor: email,
       createdAt: now,

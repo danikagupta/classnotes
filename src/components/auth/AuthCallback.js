@@ -26,14 +26,26 @@ const AuthCallback = () => {
           console.log('Received direct token from authentication redirect');
           
           try {
+            console.log('Processing authentication callback');
             const user = JSON.parse(decodeURIComponent(userString));
+            console.log('Decoded user string:', user);
             
             // Store the token in localStorage
             localStorage.setItem('token', token);
             localStorage.setItem('authMethod', 'jwt-only');
             
-            // Update Redux store
-            dispatch(setUser(user));
+            // Decode the JWT to get the role
+            console.log('Decoding JWT token');
+            const tokenData = JSON.parse(atob(token.split('.')[1]));
+            console.log('Decoded token data:', { ...tokenData, accessToken: '[REDACTED]', refreshToken: '[REDACTED]' });
+            
+            // Update Redux store with user data including role
+            const userData = {
+              ...user,
+              role: tokenData.role
+            };
+            console.log('Dispatching user data to Redux:', userData);
+            dispatch(setUser(userData));
             
             console.log('Authentication successful, redirecting to dashboard');
             navigate('/dashboard');

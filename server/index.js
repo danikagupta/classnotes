@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const { router: authRoutes } = require('./routes/auth');
 const notesRoutes = require('./routes/notes');
 const calendarRoutes = require('./routes/calendar');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -41,6 +42,7 @@ app.use(limiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/calendar', calendarRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

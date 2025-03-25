@@ -4,6 +4,7 @@ const { google } = require('googleapis');
 const { oauth2Client, getAuthUrl } = require('../config/google');
 const { admin, db, getUserCollectionPath } = require('../config/firebase');
 const jwt = require('jsonwebtoken');
+const { USER_ROLES, getUserRole, initializeOwner } = require('../models/userRoles');
 
 const { refreshAccessToken, isTokenExpired, createNewToken } = require('../utils/tokenRefresh');
 
@@ -114,19 +115,35 @@ router.get('/google/callback', async (req, res) => {
     console.log('WARNING: Using in-memory user storage - data will be lost on server restart');
     console.log('Create a Firestore database in the Firebase console for persistent storage');
 
+    // Get or create user role
+    console.log('Getting user role for:', data.email);
+    const userRole = await getUserRole(data.email);
+    console.log('User role retrieved:', userRole);
+
     // Create JWT
-    console.log('Creating JWT token for user');
+    console.log('Creating JWT token for user with role:', userRole);
+    const tokenData = { 
+      email: data.email,
+      name: data.name,
+      picture: data.picture,
+      role: userRole,
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token
+    };
+    console.log('Token data (excluding tokens):', { ...tokenData, accessToken: '[REDACTED]', refreshToken: '[REDACTED]' });
+    
     const token = jwt.sign(
-      { 
-        email: data.email,
-        name: data.name,
-        picture: data.picture,
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token
-      },
+      tokenData,
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    // Initialize owner if this is the owner's first login
+    if (data.email === 'amitamit@gmail.com') {
+      console.log('Initializing owner role for amitamit@gmail.com');
+      await initializeOwner();
+      console.log('Owner role initialization completed');
+    }
 
     // Instead of returning JSON directly, redirect to the React app with the token
     // This ensures the client-side router handles the authentication properly
